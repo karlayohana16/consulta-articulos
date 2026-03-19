@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Consulta de Artículos - Crossref</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f6f8;
+        }
+        h1 {
+            text-align: center;
+        }
+        input, button {
+            padding: 10px;
+            font-size: 16px;
+            margin: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: white;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #007BFF;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Consulta de Artículos por Autor</h1>
+
+<div style="text-align:center;">
+    <input type="text" id="autor" placeholder="Ingrese nombre del autor">
+    <button onclick="buscarArticulos()">Buscar</button>
+</div>
+
+<table id="tablaResultados">
+    <thead>
+        <tr>
+            <th>Título</th>
+            <th>DOI</th>
+            <th>Autores</th>
+            <th>ISSN</th>
+            <th>Revista</th>
+            <th>Año</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<script>
+async function buscarArticulos() {
+    const autor = document.getElementById("autor").value;
+    const tabla = document.querySelector("#tablaResultados tbody");
+    tabla.innerHTML = "";
+
+    if (!autor) {
+        alert("Ingrese un nombre de autor");
+        return;
+    }
+
+    const url = `https://api.crossref.org/works?query.author=${encodeURIComponent(autor)}&rows=10`;
+
+    try {
+        const response = await fetch(url);
+        const data = await response.json();
+        const items = data.message.items;
+
+        items.forEach(item => {
+            const titulo = item.title ? item.title[0] : "N/A";
+            const doi = item.DOI || "N/A";
+
+            const autores = item.author 
+                ? item.author.map(a => `${a.given || ""} ${a.family || ""}`).join(", ")
+                : "N/A";
+
+            const issn = item.ISSN ? item.ISSN.join(", ") : "N/A";
+
+            const revista = item["container-title"] 
+                ? item["container-title"][0] 
+                : "N/A";
+
+            const anio = item.issued && item.issued["date-parts"]
+                ? item.issued["date-parts"][0][0]
+                : "N/A";
+
+            const fila = `
+                <tr>
+                    <td>${titulo}</td>
+                    <td><a href="https://doi.org/${doi}" target="_blank">${doi}</a></td>
+                    <td>${autores}</td>
+                    <td>${issn}</td>
+                    <td>${revista}</td>
+                    <td>${anio}</td>
+                </tr>
+            `;
+
+            tabla.innerHTML += fila;
+        });
+
+    } catch (error) {
+        console.error(error);
+        alert("Error al consultar la API");
+    }
+}
+</script>
+
+</body>
+</html>
